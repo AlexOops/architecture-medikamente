@@ -1,0 +1,64 @@
+@startuml
+left to right direction
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam linetype polyline
+skinparam defaultTextAlignment center
+skinparam packageStyle rectangle
+skinparam nodesep 70
+skinparam ranksep 80
+
+skinparam rectangle {
+  BackgroundColor #DDF4FF
+  BorderColor #2B7BBB
+}
+
+skinparam database {
+  BackgroundColor #E8F7FF
+  BorderColor #2780E3
+}
+
+skinparam folder {
+  BackgroundColor #FFF2CC
+  BorderColor #D6A100
+}
+
+cloud "Лаборатория\n[External System]" as lab
+actor "Врач" as doctor
+actor "Администратор" as admin
+
+rectangle "P1\nНазначение анализа\n\nминимальный набор данных" as order
+rectangle "P2\nПолучение результата\n\nпроверка, загрузка,\nуведомление врача" as result
+rectangle "API Gateway\n\nAuthN/AuthZ\nrate limit\nschema validation" as gateway
+
+folder "D1\nRegistryByDate Excel\n\nAs-Is реестр анализов" as registry
+database "D2\nЦелевая БД анализов\n\nMEDICAL" as labDb
+database "D3\nEMR\n\nрезультаты в медкарте" as emr
+rectangle "C1\nКонтроли\n\npseudonymous patient_id\nTLS\nABAC\naudit log\ndata minimization" as controls
+
+doctor --> order : назначение анализа
+admin --> order : регистрация анализа
+order --> registry : As-Is Excel
+order --> gateway : To-Be API request
+gateway --> lab : заявка без лишних PII
+
+lab --> gateway : результат анализа
+gateway --> result : validated response
+result --> labDb : сохранить результат
+result --> emr : связать с медкартой
+
+controls ..> gateway
+controls ..> labDb
+controls ..> emr
+controls ..> registry
+
+legend bottom
+|= Требование |= Решение |
+| Скрыть конфиденциальные данные | pseudonymous patient_id |
+| Не отдать чужие данные | ABAC + ownership check |
+| Контроль API | API Gateway + schema validation |
+| Медицинские данные | MEDICAL tag + audit |
+endlegend
+
+@enduml

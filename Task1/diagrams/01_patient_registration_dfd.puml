@@ -1,0 +1,59 @@
+@startuml
+left to right direction
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam linetype polyline
+skinparam defaultTextAlignment center
+skinparam packageStyle rectangle
+skinparam nodesep 70
+skinparam ranksep 80
+
+skinparam rectangle {
+  BackgroundColor #DDF4FF
+  BorderColor #2B7BBB
+  FontColor #1F2937
+}
+
+skinparam database {
+  BackgroundColor #E8F7FF
+  BorderColor #2780E3
+  FontColor #1F2937
+}
+
+skinparam folder {
+  BackgroundColor #FFF2CC
+  BorderColor #D6A100
+  FontColor #1F2937
+}
+
+actor "Пациент" as patient
+actor "Администратор\nресепшена" as admin
+
+rectangle "P1\nРегистрация пациента\n\nОперации:\nсбор, ввод, проверка" as process
+folder "D1\nExcel Patients\n\nPII / PII_EXTENDED" as excel
+folder "D2\nСканы / PDF / JPG\n\nLEGAL / MEDICAL" as scans
+database "D3\nЦелевая CRM\n\nPII с тегами" as crm
+rectangle "C1\nКонтроли\n\nRBAC / ABAC\nшифрование\nмаскирование\naudit log\nretention" as controls
+
+patient --> admin : ФИО, телефон,\nemail, дата рождения
+patient --> admin : анкета,\nсогласия,\nдокументы
+admin --> process : ввод данных
+process --> excel : As-Is запись\nв Excel
+process --> scans : As-Is сохранение\nсканов
+process --> crm : To-Be запись\nв CRM
+controls ..> process
+controls ..> excel
+controls ..> scans
+controls ..> crm
+
+legend bottom
+|= Тип |= Обозначение |
+| External Entity | Пациент, администратор |
+| Process | Регистрация пациента |
+| Data Store | Excel, сканы, CRM |
+| Sensitive tags | PII, PII_EXTENDED, LEGAL, MEDICAL |
+| Controls | RBAC/ABAC, encryption, masking, audit |
+endlegend
+
+@enduml

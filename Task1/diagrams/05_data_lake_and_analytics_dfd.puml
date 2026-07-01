@@ -1,0 +1,67 @@
+@startuml
+left to right direction
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam linetype polyline
+skinparam defaultTextAlignment center
+skinparam packageStyle rectangle
+skinparam nodesep 70
+skinparam ranksep 80
+
+skinparam rectangle {
+  BackgroundColor #DDF4FF
+  BorderColor #2B7BBB
+}
+
+skinparam database {
+  BackgroundColor #E8F7FF
+  BorderColor #2780E3
+}
+
+skinparam folder {
+  BackgroundColor #FFF2CC
+  BorderColor #D6A100
+}
+
+actor "Бизнес-аналитик" as analyst
+actor "ML/AI сервисы" as ml
+
+folder "D1\nExcel / PDF / JPG\nAs-Is источники" as files
+database "D2\nCRM / EMR / 1C\nуправляемые источники" as sources
+rectangle "P1\nIngestion\n\nзагрузка данных" as ingest
+rectangle "P2\nTagging & Classification\n\nPII / MEDICAL / PAYMENT" as tagging
+rectangle "P3\nAnonymization\n\nобезличивание\nпсевдонимизация" as anonymize
+database "D3\nData Lake\n\nraw / trusted / curated" as lake
+database "D4\nDWH / Data Mart\n\nBI-ready данные" as mart
+rectangle "Data Catalog\n\nowner, tags,\nlineage, retention" as catalog
+rectangle "C1\nКонтроли\n\nDLP\nlineage\nquality checks\naccess policy\nSIEM alerts" as controls
+
+files --> ingest : As-Is выгрузки
+sources --> ingest : To-Be controlled extract
+ingest --> tagging : metadata scan
+tagging --> anonymize : policy decision
+anonymize --> lake : raw/trusted data
+lake --> mart : curated dataset
+
+mart --> analyst : BI / отчёты
+mart --> ml : ML/AI datasets
+
+catalog ..> ingest
+catalog ..> tagging
+catalog ..> anonymize
+catalog ..> lake
+catalog ..> mart
+controls ..> lake
+controls ..> mart
+controls ..> catalog
+
+legend bottom
+|= Принцип |= Реализация |
+| Data Minimization | в BI/ML не передавать лишние PII |
+| Privacy by Design | теги и политики до использования данных |
+| Data Lineage | путь от источника до витрины |
+| Защита ML/AI | только anonymized/pseudonymized datasets |
+endlegend
+
+@enduml
