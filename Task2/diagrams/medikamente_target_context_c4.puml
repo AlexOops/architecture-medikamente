@@ -1,0 +1,193 @@
+@startuml
+left to right direction
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam linetype polyline
+skinparam defaultTextAlignment center
+skinparam packageStyle rectangle
+skinparam nodesep 75
+skinparam ranksep 90
+
+skinparam rectangle {
+  BackgroundColor #DDF4FF
+  BorderColor #2B7BBB
+  FontColor #1F2937
+}
+
+skinparam database {
+  BackgroundColor #E8F7FF
+  BorderColor #2780E3
+  FontColor #1F2937
+}
+
+skinparam cloud {
+  BackgroundColor #F3F4F6
+  BorderColor #6B7280
+  FontColor #1F2937
+}
+
+skinparam queue {
+  BackgroundColor #FFF2CC
+  BorderColor #D6A100
+  FontColor #1F2937
+}
+
+skinparam note {
+  BackgroundColor #FFF8DC
+  BorderColor #C9A227
+}
+
+actor "Пациент" as patient
+actor "Врач" as doctor
+actor "Ресепшен" as reception
+actor "Кассир" as cashier
+actor "Бухгалтер" as accountant
+actor "Бизнес-аналитик" as analyst
+actor "Администратор ИБ" as securityAdmin
+
+frame "Клиентские и внутренние каналы" as channels {
+  rectangle "Patient Portal / Mobile App\n[Web/Mobile]\n\nсамозапись, анализы,\nзаключения, договоры" as patientPortal
+  rectangle "Staff Portal\n[Web]\n\nрабочее место\nсотрудников" as staffPortal
+}
+
+frame "Privacy & Security Layer" as privacyLayer {
+  rectangle "IAM / SSO\n\nMFA, RBAC, ABAC,\nbranch/user attributes" as iam
+  rectangle "Policy Decision Point\n\nпроверка доступа\nпо ролям, атрибутам,\nтегам и consent" as pdp
+  rectangle "Consent Management\n\nсогласия пациента,\nотзыв, сроки действия" as consent
+  rectangle "Data Classification\n& Tagging\n\nPII / MEDICAL / PAYMENT\nLEGAL / HR" as tagging
+  rectangle "Audit Log\n\nчтение, изменение,\nвыгрузка, удаление" as audit
+  rectangle "DLP" as dlp
+  rectangle "SIEM / Monitoring\n\nаномалии, алерты,\nинциденты" as siem
+}
+
+frame "Core Systems To-Be" as core {
+  rectangle "API Gateway\n\nAuthN/AuthZ\nrate limit\nschema validation\ndata minimization" as apiGateway
+  rectangle "CRM\n\nклиенты, договоры,\nстатусы оплат" as crm
+  rectangle "EMR\n\nмедкарты, приёмы,\nзаключения" as emr
+  rectangle "Appointment Service\n\nзапись, перенос,\nотмена, уведомления" as appointment
+  rectangle "Payment Gateway\n\nоплаты, чеки,\nинтеграция с 1С/ККМ" as payment
+  rectangle "Laboratory Integration\n\nзаявки и результаты\nанализов через API" as labIntegration
+}
+
+frame "Data Stores" as stores {
+  database "Patient DB\n\nPII" as patientDb
+  database "Medical DB\n\nMEDICAL" as medicalDb
+  database "Document Storage\n\nLEGAL / MEDICAL files" as docs
+  database "Payment DB / 1C\n\nPAYMENT / HR" as paymentDb
+}
+
+frame "Analytics Privacy Layer" as analytics {
+  rectangle "Data Ingestion\n\ncontrolled extract" as ingestion
+  rectangle "Anonymization /\nPseudonymization\n\nдля BI/ML/AI" as anonymization
+  database "Data Lake\n\nraw / trusted / curated" as lake
+  database "DWH / Data Marts\n\nBI-ready datasets" as marts
+  rectangle "Data Catalog\n& Lineage\n\nowner, tags, source,\nretention, lineage" as catalog
+  rectangle "BI / ML / AI Workspace\n\nтолько разрешённые\nдатасеты" as workspace
+}
+
+cloud "Лаборатория\n[External System]" as lab
+rectangle "1С Бухгалтерия\nи 1С Склад" as oneC
+rectangle "ККМ" as kkm
+
+patient --> patientPortal
+doctor --> staffPortal
+reception --> staffPortal
+cashier --> staffPortal
+accountant --> staffPortal
+analyst --> workspace
+securityAdmin --> siem
+
+patientPortal --> iam
+staffPortal --> iam
+
+patientPortal --> apiGateway
+staffPortal --> apiGateway
+
+apiGateway --> pdp
+apiGateway --> consent
+apiGateway --> audit
+
+pdp --> tagging
+pdp --> consent
+pdp --> iam
+
+apiGateway --> crm
+apiGateway --> emr
+apiGateway --> appointment
+apiGateway --> payment
+apiGateway --> labIntegration
+
+crm --> patientDb
+crm --> docs
+emr --> medicalDb
+emr --> docs
+appointment --> patientDb
+payment --> paymentDb
+payment --> oneC
+oneC --> kkm
+labIntegration --> lab
+labIntegration --> medicalDb
+
+crm --> ingestion
+emr --> ingestion
+paymentDb --> ingestion
+docs --> ingestion
+
+ingestion --> tagging
+tagging --> anonymization
+anonymization --> lake
+lake --> marts
+marts --> workspace
+
+catalog ..> ingestion
+catalog ..> tagging
+catalog ..> anonymization
+catalog ..> lake
+catalog ..> marts
+
+audit --> siem
+dlp --> siem
+apiGateway --> dlp
+docs --> dlp
+workspace --> dlp
+
+note bottom of privacyLayer
+Privacy by Design слой применяется
+ко всем новым системам.
+
+Доступ к PII/MEDICAL данным
+проверяется до выполнения операции.
+end note
+
+note bottom of analytics
+Аналитика работает через
+отдельный защищённый слой.
+
+BI/ML/AI не получают сырые PII
+и MEDICAL данные без политики,
+тегов и обезличивания.
+end note
+
+note bottom of apiGateway
+Внешние интеграции проходят
+через API Gateway.
+
+Контракт API отдаёт только
+минимально необходимый
+состав данных.
+end note
+
+legend bottom
+|= Блок |= Назначение |
+| IAM / SSO | единый вход, MFA, RBAC/ABAC |
+| PDP | решение о доступе по ролям, атрибутам, тегам и consent |
+| Data Tagging | классификация PII/MEDICAL/PAYMENT/LEGAL/HR |
+| Consent Management | учёт согласий и отзывов пациента |
+| Audit Log + SIEM | расследование инцидентов и алерты |
+| DLP | контроль выгрузок, файлов, почты и датасетов |
+| Data Catalog & Lineage | владелец, источник, путь данных, срок хранения |
+| Anonymization | подготовка безопасных данных для BI/ML/AI |
+endlegend
+
+@enduml
