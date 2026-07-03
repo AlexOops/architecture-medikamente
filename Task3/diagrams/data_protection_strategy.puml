@@ -1,0 +1,193 @@
+@startuml
+left to right direction
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam linetype polyline
+skinparam defaultTextAlignment center
+skinparam packageStyle rectangle
+skinparam nodesep 75
+skinparam ranksep 90
+
+skinparam rectangle {
+  BackgroundColor #DDF4FF
+  BorderColor #2B7BBB
+  FontColor #1F2937
+}
+
+skinparam database {
+  BackgroundColor #E8F7FF
+  BorderColor #2780E3
+  FontColor #1F2937
+}
+
+skinparam cloud {
+  BackgroundColor #F3F4F6
+  BorderColor #6B7280
+  FontColor #1F2937
+}
+
+skinparam note {
+  BackgroundColor #FFF8DC
+  BorderColor #C9A227
+}
+
+actor "Пациент" as patient
+actor "Сотрудник" as employee
+actor "Аналитик" as analyst
+actor "ИБ-администратор" as securityAdmin
+
+frame "Access Layer" as accessLayer {
+  rectangle "IAM / SSO\n\nMFA, RBAC, ABAC" as iam
+  rectangle "Policy Decision Point\n\nроль, филиал, пациент,\nтег данных, цель доступа" as pdp
+  rectangle "API Gateway\n\nTLS / mTLS\nrate limit\nschema validation" as gateway
+}
+
+frame "Operational Systems" as operational {
+  rectangle "Patient Portal" as portal
+  rectangle "Staff Portal" as staff
+  rectangle "CRM" as crm
+  rectangle "EMR" as emr
+  rectangle "Payment Service" as payment
+  rectangle "Laboratory Integration" as labIntegration
+}
+
+frame "Protected Data Stores" as stores {
+  database "Patient DB\n\nPII\nencryption at rest" as patientDb
+  database "Medical DB\n\nMEDICAL\nencryption at rest" as medicalDb
+  database "Document Storage\n\nLEGAL / MEDICAL\nencrypted files" as docs
+  database "Payment DB / 1C\n\nPAYMENT\nRBAC + audit" as paymentDb
+  database "Encrypted Backup\n\nimmutable / restricted restore" as backup
+}
+
+frame "Analytics Protection Layer" as analytics {
+  rectangle "Data Classification\n& Tagging" as tagging
+  rectangle "Anonymization /\nPseudonymization" as anonymization
+  database "Data Lake" as lake
+  database "DWH / Data Marts" as mart
+  rectangle "BI / ML / AI Workspace" as workspace
+  rectangle "Data Catalog\n& Lineage" as catalog
+}
+
+frame "Control & Monitoring" as controls {
+  rectangle "Audit Log\n\nread / update / export / delete" as audit
+  rectangle "DLP\n\nfiles, mail, exports" as dlp
+  rectangle "SIEM\n\nanomalies, alerts, incidents" as siem
+  rectangle "KMS / Vault\n\nkeys, secrets, rotation" as vault
+  rectangle "Retention & Deletion\n\nсроки хранения, удаление,\nпрекращение обработки" as retention
+}
+
+cloud "Лаборатория" as lab
+
+patient --> portal
+employee --> staff
+analyst --> workspace
+securityAdmin --> siem
+
+portal --> iam
+staff --> iam
+
+portal --> gateway
+staff --> gateway
+
+gateway --> pdp
+pdp --> iam
+pdp --> tagging
+
+gateway --> crm
+gateway --> emr
+gateway --> payment
+gateway --> labIntegration
+
+crm --> patientDb
+emr --> medicalDb
+emr --> docs
+payment --> paymentDb
+labIntegration --> lab
+labIntegration --> medicalDb
+
+patientDb --> backup
+medicalDb --> backup
+docs --> backup
+paymentDb --> backup
+
+patientDb --> tagging
+medicalDb --> tagging
+paymentDb --> tagging
+docs --> tagging
+
+tagging --> anonymization
+anonymization --> lake
+lake --> mart
+mart --> workspace
+
+catalog ..> tagging
+catalog ..> anonymization
+catalog ..> lake
+catalog ..> mart
+
+vault ..> patientDb
+vault ..> medicalDb
+vault ..> docs
+vault ..> backup
+
+gateway --> audit
+crm --> audit
+emr --> audit
+payment --> audit
+workspace --> audit
+
+audit --> siem
+dlp --> siem
+docs --> dlp
+workspace --> dlp
+
+retention ..> patientDb
+retention ..> medicalDb
+retention ..> docs
+retention ..> lake
+retention ..> mart
+
+note bottom of stores
+Data at rest:
+
+- encryption at rest
+- KMS/Vault
+- RBAC/ABAC
+- encrypted backup
+end note
+
+note bottom of accessLayer
+Data in transit:
+
+- TLS/mTLS
+- API Gateway
+- schema validation
+- data minimization
+end note
+
+note bottom of analytics
+BI/ML/AI получают только
+обезличенные или
+псевдонимизированные данные.
+end note
+
+note bottom of controls
+Автоматизированный контроль:
+
+- audit log
+- DLP
+- SIEM
+- retention
+- secrets management
+end note
+
+legend bottom
+|= Зона |= Защита |
+| Access Layer | IAM, PDP, API Gateway, TLS/mTLS |
+| Protected Stores | encryption at rest, KMS, RBAC, backup encryption |
+| Analytics | tagging, anonymization, lineage, catalog |
+| Control | audit log, DLP, SIEM, retention, Vault |
+endlegend
+
+@enduml

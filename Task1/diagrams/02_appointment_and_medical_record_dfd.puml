@@ -1,0 +1,60 @@
+@startuml
+left to right direction
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam linetype polyline
+skinparam defaultTextAlignment center
+skinparam packageStyle rectangle
+skinparam nodesep 70
+skinparam ranksep 80
+
+skinparam rectangle {
+  BackgroundColor #DDF4FF
+  BorderColor #2B7BBB
+}
+
+skinparam database {
+  BackgroundColor #E8F7FF
+  BorderColor #2780E3
+}
+
+skinparam folder {
+  BackgroundColor #FFF2CC
+  BorderColor #D6A100
+}
+
+actor "Пациент" as patient
+actor "Администратор" as admin
+actor "Врач" as doctor
+
+rectangle "P1\nЗапись на приём\n\nсоздание / изменение" as appointment
+rectangle "P2\nПриём врача\n\nпросмотр / запись\nмедицинских данных" as visit
+folder "D1\nExcel Journal-Doctor\n\nжурнал записи" as journal
+folder "D2\nФайлы медкарты\nPDF/JPG/Excel" as medFiles
+database "D3\nЦелевая EMR\n\nMEDICAL / PII" as emr
+rectangle "C1\nКонтроли\n\nABAC: врач-пациент\nRBAC: роль врача\naudit log\nDLP\nшифрование" as controls
+
+patient --> admin : запрос записи
+admin --> appointment : дата, врач,\nконтакты
+appointment --> journal : As-Is запись\nв Excel
+appointment --> emr : To-Be appointment
+
+doctor --> visit : осмотр пациента
+visit --> medFiles : As-Is медкарта\nв файлах
+visit --> emr : To-Be медзапись
+
+controls ..> appointment
+controls ..> visit
+controls ..> journal
+controls ..> medFiles
+controls ..> emr
+
+legend bottom
+|= Данные |= Защита |
+| Журнал записи | RBAC, audit, masking телефона |
+| Медкарта | ABAC, encryption, audit, DLP |
+| Диагноз / назначения | MEDICAL tag, запрет в Excel |
+endlegend
+
+@enduml

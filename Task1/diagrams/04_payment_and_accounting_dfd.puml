@@ -1,0 +1,62 @@
+@startuml
+left to right direction
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam linetype polyline
+skinparam defaultTextAlignment center
+skinparam packageStyle rectangle
+skinparam nodesep 70
+skinparam ranksep 80
+
+skinparam rectangle {
+  BackgroundColor #DDF4FF
+  BorderColor #2B7BBB
+}
+
+skinparam database {
+  BackgroundColor #E8F7FF
+  BorderColor #2780E3
+}
+
+skinparam folder {
+  BackgroundColor #FFF2CC
+  BorderColor #D6A100
+}
+
+actor "Пациент" as patient
+actor "Кассир" as cashier
+actor "Бухгалтер" as bookkeeper
+
+rectangle "P1\nОплата услуги\n\nприём оплаты,\nвыдача чека" as payment
+rectangle "P2\nБухгалтерский учёт\n\nсверка платежей" as accounting
+rectangle "ККМ\n[Software System]" as kkm
+database "D1\n1С Бухгалтерия\n\nPAYMENT / HR" as accountingDb
+folder "D2\nExcel платежей\n\nAs-Is двойной учёт" as excel
+database "D3\nЦелевая CRM\n\nстатус оплаты\nбез диагноза" as crm
+rectangle "C1\nКонтроли\n\nRBAC\nразделение medical/payment\naudit log\nшифрование backup" as controls
+
+patient --> cashier : оплата услуги
+cashier --> payment : сумма, услуга,\nдоговор
+payment --> kkm : фискальный чек
+payment --> excel : As-Is запись\nв Excel
+payment --> accountingDb : запись платежа
+payment --> crm : статус оплаты
+
+bookkeeper --> accounting : сверка
+accounting --> accountingDb : проводки,\nотчётность
+
+controls ..> payment
+controls ..> accounting
+controls ..> accountingDb
+controls ..> excel
+controls ..> crm
+
+legend bottom
+|= Ограничение |= Решение |
+| Кассир не видит диагноз | разделение payment и medical data |
+| Платёжные данные | PAYMENT tag, RBAC, audit |
+| Excel-дублирование | убрать после миграции в CRM/1С |
+endlegend
+
+@enduml

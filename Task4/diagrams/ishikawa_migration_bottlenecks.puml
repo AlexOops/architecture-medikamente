@@ -1,0 +1,68 @@
+@startuml
+left to right direction
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam linetype polyline
+skinparam defaultTextAlignment center
+skinparam packageStyle rectangle
+skinparam nodesep 65
+skinparam ranksep 70
+skinparam ArrowColor #374151
+skinparam ArrowThickness 2
+
+skinparam rectangle {
+  BackgroundColor #DDF4FF
+  BorderColor #2B7BBB
+  FontColor #1F2937
+}
+
+skinparam note {
+  BackgroundColor #FFF8DC
+  BorderColor #C9A227
+  FontColor #1F2937
+}
+
+rectangle "ЭФФЕКТ\n\nУзкие места и деградация\nпроизводительности при миграции" as effect #F8CECC
+
+rectangle "Инфраструктура\n\n- один локальный сервер\n- совмещены AD/DNS/DHCP/LDAP/files/Exchange\n- нет prod/test разделения\n- нет DR и отказоустойчивости" as infra
+rectangle "Данные и БД\n\n- Excel/PDF/JPG как source of truth\n- нет master patient id\n- дубли и неполные записи\n- нет lineage и data quality" as data
+rectangle "Интеграции\n\n- 1С в файловом режиме\n- ККМ через TCP/IP + OLE\n- нет API Gateway\n- нет idempotency и очередей" as integrations
+rectangle "Безопасность\n\n- нет классификации данных\n- нет ABAC для medical data\n- нет audit log\n- нет DLP/SIEM" as security
+
+rectangle "ПО и бизнес-логика\n\n- ручные правила не формализованы\n- риск распределённого монолита\n- неясные границы доменов\n- распределённые транзакции" as software
+rectangle "Персонал и процессы\n\n- привычка работать в Excel\n- маленькая IT-команда\n- нет DevOps/Data/Security ролей\n- нет rollback-регламентов" as people
+rectangle "Эксплуатация\n\n- нет метрик и tracing\n- нет SLO/SLA\n- нет нагрузочных тестов\n- нет бизнес-алертов" as ops
+
+rectangle "Миграция\nустаревшей системы\nна To-Be архитектуру" as spine #FFFFFF
+
+infra -down-> spine
+data -down-> spine
+integrations -down-> spine
+security -down-> spine
+
+software -up-> spine
+people -up-> spine
+ops -up-> spine
+
+spine -right-> effect
+
+note bottom of spine
+Главный риск — перенести
+неуправляемые данные и ручные процессы
+в новую архитектуру без нормализации,
+аудита и контроля интеграций.
+end note
+
+legend bottom
+|= Категория |= Главный риск |
+| Инфраструктура | единая точка отказа и слабая масштабируемость |
+| Данные и БД | перенос дублей, ошибок и неразмеченных PII/MEDICAL |
+| Интеграции | рассинхронизация 1С, ККМ, лаборатории и новых сервисов |
+| Безопасность | утечка PII/MEDICAL и отсутствие расследуемости |
+| ПО и бизнес-логика | распределённый монолит и дублирование логики |
+| Персонал и процессы | ошибки пользователей и нехватка компетенций |
+| Эксплуатация | отсутствие наблюдаемости и нагрузочной проверки |
+endlegend
+
+@enduml
